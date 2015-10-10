@@ -2,6 +2,7 @@ package in.umlaut.views;
 
 import in.umlaut.game.Game;
 import in.umlaut.game.GameBuilder;
+import in.umlaut.game.GameIdGenerator;
 import in.umlaut.player.PlayerManager;
 
 import java.util.Scanner;
@@ -82,6 +83,7 @@ public class StartScreen implements KbInputHandler{
                     break;
                 case "S":
                     if (gameBuilder.canStart()) {
+                        gameBuilder.setId(GameIdGenerator.getInstance().getNextId());
                         Game game = gameBuilder.build();
                         game.addObserver(PlayerManager.getInstance());
                         game.handleKeyStroke();

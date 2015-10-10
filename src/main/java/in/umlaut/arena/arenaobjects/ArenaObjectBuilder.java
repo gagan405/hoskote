@@ -5,31 +5,28 @@ import in.umlaut.arena.ArenaIdGenerator;
 import in.umlaut.arena.ArenaObject;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Created by gbm on 27/09/15.
  */
 public class ArenaObjectBuilder {
-    private GenericArenaObject genericArenaObject;
-    private ArenaIdGenerator idGenerator = ArenaIdGenerator.getInstance();
-    private ArenaObjectPool objectPool = ArenaObjectPool.getInstance();
 
+    private int id;
     private String name;
+    private String explore;
     private ArenaObject container;
     private Arena containingArena;
 
-    private boolean isMovable = false;
-    private boolean isPickable = false;
-    private boolean isUsableOnOtherObject = false;
-    private boolean isUsableByOtherObject = false;
+    private Actions action;
+    private ArenaObject actionOperator;
+    private String actionInput;
+    private ActionResult result;
+
+    private Function<ArenaObject, Void> onAction;
+
     private boolean isThisTheKey = false;
-    private ArenaObject findObjectOnMoveOrUse;
-    private ArenaObject usableObject;
-    private boolean canApplyInput = false;
-    private String inputToEnter;
-    private String explore;
-    private ArenaObject objectToReturnOnCorrectInput;
-    private Long pointsForFindingThis = 0l;
 
     private List<ArenaObject> containedObjects;
 
@@ -42,63 +39,33 @@ public class ArenaObjectBuilder {
         return this;
     }
 
-    public ArenaObjectBuilder setContainer(ArenaObject container) {
-        this.container = container;
+    public ArenaObjectBuilder setId(Integer id) {
+        this.id = id;
         return this;
     }
 
-    public ArenaObjectBuilder setPointsForFindingThis(Long points){
-        this.pointsForFindingThis = points;
+    public ArenaObjectBuilder setAction(Actions action){
+        this.action = action;
         return this;
     }
 
-    public ArenaObjectBuilder setContainerArena(Arena container) {
-        this.containingArena = container;
+    public ArenaObjectBuilder setActionOperator(ArenaObject operator){
+        this.actionOperator = operator;
         return this;
     }
 
-    public ArenaObjectBuilder setIsMovable(boolean isMovable) {
-        this.isMovable = isMovable;
+    public ArenaObjectBuilder setActionInput(String input){
+        this.actionInput = input;
         return this;
     }
 
-    public ArenaObjectBuilder setIsThisTheKey(boolean isThisTheKey) {
-        this.isThisTheKey = isThisTheKey;
+    public ArenaObjectBuilder setActionResult(ActionResult result){
+        this.result = result;
         return this;
     }
 
-    public ArenaObjectBuilder setIsPickable(boolean isPickable) {
-        this.isPickable = isPickable;
-        return this;
-    }
-
-    public ArenaObjectBuilder setIsUsableOnOtherObject(boolean isUsableOnOtherObject) {
-        this.isUsableOnOtherObject = isUsableOnOtherObject;
-        return this;
-    }
-
-    public ArenaObjectBuilder setIsUsableByOtherObject(boolean isUsableByOtherObject) {
-        this.isUsableByOtherObject = isUsableByOtherObject;
-        return this;
-    }
-
-    public ArenaObjectBuilder setFindObjectOnMoveOrUse(ArenaObject findObjectOnMoveOrUse) {
-        this.findObjectOnMoveOrUse = findObjectOnMoveOrUse;
-        return this;
-    }
-
-    public ArenaObjectBuilder setUsableObject(ArenaObject usableObject) {
-        this.usableObject = usableObject;
-        return this;
-    }
-
-    public ArenaObjectBuilder setCanApplyInput(boolean canApplyInput) {
-        this.canApplyInput = canApplyInput;
-        return this;
-    }
-
-    public ArenaObjectBuilder setInputToEnter(String inputToEnter) {
-        this.inputToEnter = inputToEnter;
+    public ArenaObjectBuilder setOnAction(Function<ArenaObject, Void> onAction){
+        this.onAction = onAction;
         return this;
     }
 
@@ -107,22 +74,77 @@ public class ArenaObjectBuilder {
         return this;
     }
 
+    public ArenaObjectBuilder setContainer(ArenaObject container) {
+        this.container = container;
+        return this;
+    }
+
+    public ArenaObjectBuilder setContainerArena(Arena container) {
+        this.containingArena = container;
+        return this;
+    }
+
+
+    public ArenaObjectBuilder setIsThisTheKey(boolean isThisTheKey) {
+        this.isThisTheKey = isThisTheKey;
+        return this;
+    }
+
     public ArenaObjectBuilder setContainedObjects(List<ArenaObject> containedObjects) {
         this.containedObjects = containedObjects;
         return this;
     }
 
-    public ArenaObjectBuilder setObjectToReturnOnCorrectInput(ArenaObject objectToReturnOnCorrectInput) {
-        this.objectToReturnOnCorrectInput = objectToReturnOnCorrectInput;
-        return this;
-    }
 
     public GenericArenaObject build(){
-        GenericArenaObject object = new GenericArenaObject(idGenerator.getNextId(true),
-                container, containingArena, name, isMovable, isPickable, isUsableOnOtherObject, isUsableByOtherObject, isThisTheKey,
-                findObjectOnMoveOrUse, usableObject, canApplyInput, inputToEnter,
-                objectToReturnOnCorrectInput, explore, containedObjects, pointsForFindingThis);
-        objectPool.addObject(object);
-        return object;
+        return new GenericArenaObject(this);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getExplore() {
+        return explore;
+    }
+
+    public ArenaObject getContainer() {
+        return container;
+    }
+
+    public Arena getContainingArena() {
+        return containingArena;
+    }
+
+    public Actions getAction() {
+        return action;
+    }
+
+    public ArenaObject getActionOperator() {
+        return actionOperator;
+    }
+
+    public String getActionInput() {
+        return actionInput;
+    }
+
+    public ActionResult getResult() {
+        return result;
+    }
+
+    public Function<ArenaObject, Void> getOnAction() {
+        return onAction;
+    }
+
+    public boolean isThisTheKey() {
+        return isThisTheKey;
+    }
+
+    public List<ArenaObject> getContainedObjects() {
+        return containedObjects;
+    }
+
+    public int getId(){
+        return id;
     }
 }

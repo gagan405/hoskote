@@ -61,8 +61,6 @@ public class ResumeableGameScreen implements KbInputHandler {
                                         System.out.println("Saved game deleted for player.");
                                         break;
                                     case 'S':
-                                        builder.setIsReconstruct(true);
-                                        builder.setGame(game);
                                         System.out.println("Resumable game is selected");
                                         break;
                                     default:

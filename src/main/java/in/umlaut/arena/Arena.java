@@ -1,9 +1,8 @@
 package in.umlaut.arena;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import in.umlaut.game.PlayerPos;
+
+import java.util.*;
 
 /**
  * Created by gbm on 26/09/15.
@@ -63,7 +62,7 @@ public class Arena {
         }
     }
 
-    protected void addObject(ArenaObject object, ArenaLayout layout){
+    public void addObject(ArenaObject object, ArenaLayout layout){
         List<ArenaObject> objects;
         if(this.objectsLayout.containsKey(layout)){
             objects = this.objectsLayout.get(layout);
@@ -77,6 +76,24 @@ public class Arena {
 
     public List<ArenaObject> getObjects(ArenaLayout layout){
         return this.objectsLayout.get(layout);
+    }
+
+    public ArenaObject chooseObject(int id, ArenaLayout layoutSelected){
+        List<ArenaObject> objects = this.getObjects(layoutSelected);
+        if(objects != null && !objects.isEmpty()){
+            Optional<ArenaObject> object = objects.stream()
+                    .filter(o -> o.getId() == id)
+                    .findFirst();
+            if(object.isPresent()){
+                return object.get();
+            }else{
+                System.out.println("Invalid input. Requested item is not here. Please try again");
+            }
+
+        }else {
+            System.out.println("Invalid input. No objects to choose from. Please try again");
+        }
+        return null;
     }
 
     public void addObject(ArenaObject object){
@@ -103,11 +120,6 @@ public class Arena {
     public int getId(){
         return this.id;
     }
-
-    public void setShortDescription(String shortDescription){
-        this.shortDescription = shortDescription;
-    }
-
 
     public void explore(ArenaLayout layout){
         List<ArenaObject> objects = this.objectsLayout.get(layout);

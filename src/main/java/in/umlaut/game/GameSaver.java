@@ -122,7 +122,6 @@ public class GameSaver implements GameObserver{
 
     private Game reconstructGame(String savedGame){
         GameBuilder builder = new GameBuilder();
-        builder.setIsReconstruct(true);
         String[] tokens = savedGame.split(DELIMITER, -1);
         builder.setId(Integer.parseInt(tokens[0]));
         builder.setPlayer(playerManager.getNthPlayer(Integer.parseInt(tokens[1])));

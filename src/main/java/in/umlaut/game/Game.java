@@ -4,6 +4,8 @@ import in.umlaut.arena.Arena;
 
 import in.umlaut.arena.ArenaLayout;
 import in.umlaut.arena.ArenaObject;
+import in.umlaut.arena.arenaobjects.ActionResult;
+import in.umlaut.arena.arenaobjects.Actions;
 import in.umlaut.player.Player;
 import in.umlaut.views.KbInputHandler;
 
@@ -14,8 +16,6 @@ import java.util.stream.Collectors;
  * Created by gbm on 26/09/15.
  */
 public class Game implements KbInputHandler{
-    GameIdGenerator idGenerator = GameIdGenerator.getInstance();
-
     private int id;
     private static final String helpMessage =  "Press: \n"
             +"'H': Help on the Game and Arena \n"
@@ -36,13 +36,11 @@ public class Game implements KbInputHandler{
             +"Good luck and get going! \n";
 
     private List<GameObserver> observers;
-
     private Scanner in;
-
     private Player player;
     private Arena arena;
     private Long score = 0l;
-    private int remainingLives = 3;
+    private PlayerPos position = PlayerPos.ARENA;
 
     protected Player getPlayer() {
         return player;
@@ -60,28 +58,12 @@ public class Game implements KbInputHandler{
         return id;
     }
 
-    protected int getRemainingLives() {
-        return remainingLives;
-    }
-
-    protected Date getStartTime() {
-        return startTime;
-    }
-
     protected ArenaObject getSelectedObject() {
         return selectedObject;
     }
 
     protected List<ArenaObject> getFoundObjects() {
         return foundObjects;
-    }
-
-    protected boolean isKeyFound() {
-        return isKeyFound;
-    }
-
-    protected boolean isExit() {
-        return isExit;
     }
 
     protected boolean isDirectionSelected() {
@@ -92,8 +74,6 @@ public class Game implements KbInputHandler{
         return layoutSelected;
     }
 
-    private Date startTime;
-
     private ArenaObject selectedObject;
     private List<ArenaObject> foundObjects = new ArrayList<>();
     private boolean isKeyFound;
@@ -101,24 +81,15 @@ public class Game implements KbInputHandler{
     private boolean isDirectionSelected;
     private ArenaLayout layoutSelected;
 
-    public Game(Player player, Arena arena){
-
-        this.id = idGenerator.getNextId();
-        this.arena = arena;
-        this.player = player;
-        observers = new ArrayList<>();
-    }
-
-    protected Game(Integer id, Player player, Arena arena, Long score, ArenaObject selectedObject, List<ArenaObject> foundObjects,
-                   boolean isDirectionSelected, ArenaLayout layoutSelected){
-        this.id = id;
-        this.player = player;
-        this.arena = arena;
-        this.score = score;
-        this.selectedObject = selectedObject;
-        this.foundObjects = foundObjects;
-        this.isDirectionSelected = isDirectionSelected;
-        this.layoutSelected = layoutSelected;
+    public Game(GameBuilder builder){
+        this.id = builder.getId();
+        this.player = builder.getPlayer();
+        this.arena = builder.getArenaInstance();
+        this.score = builder.getScore();
+        this.selectedObject = builder.getSelectedObject();
+        this.foundObjects = builder.getFoundObjects() == null ? new ArrayList<>() : builder.getFoundObjects();
+        this.isDirectionSelected = builder.isDirectionSelected();
+        this.layoutSelected = builder.getLayout();
         observers = new ArrayList<>();
     }
 
@@ -130,67 +101,46 @@ public class Game implements KbInputHandler{
         while (true){
             switch (token.toUpperCase()){
                 case "H" :
-                    arena.explore();
-                    showHelpMessage();
+                    if(position.equals(PlayerPos.ARENA)) {
+                        arena.explore();
+                        showHelpMessage();
+                    }else{
+                        showHelpMessageForObjectView();
+                    }
                     break;
                 case "F" :
                     displayScoreAndFoundItems();
                     break;
-                case "U" :
-                    if(checkSelection()){
-                        if(selectedObject.isUsableByOtherObject()){
-                            handleUse();
-                        } else{
-                            System.out.println("Invalid action. You cannot use another object on this item.");
-                        }
-                    }else {
-                        System.out.println("No object has been selected. First select an object to take action.");
-                    }
-                    break;
-                case "P" :
-                    if(checkSelection()){
-                        if(selectedObject.isPickable()){
-                            handlePick();
-                        } else{
-                            System.out.println("Invalid action. You cannot pick this object.");
-                        }
-                    }else {
-                        System.out.println("No object has been selected. First select an object to take action.");
-                    }
-                    break;
-
                 case "Q" :
                     handleQuit();
                     break;
                 case "R" :
                     resetSelections();
                     break;
-                case "M" :
-                    if(checkSelection()){
-                        if(selectedObject.isMovable()){
-                            handleMove();
-                        } else{
-                            System.out.println("Invalid action. You cannot move this object.");
-                        }
-                    }else {
-                        System.out.println("No object has been selected. First select an object to take action.");
+                case "E" :
+                    if(position.equals(PlayerPos.ARENA)){
+                        handleDirectionSelection(token);
+                    }else{
+                        handleExploreWithinObject(token);
                     }
                     break;
-                case "E" :
                 case "W" :
                 case "S" :
                 case "N" :
-                    handleDirectionSelection(token);
+                    if(position.equals(PlayerPos.ARENA)){
+                        handleDirectionSelection(token);    
+                    }else{
+                        System.out.println("Invalid input. You have already chosen an object " + selectedObject.getName());
+                    }
                     break;
                 default:
                     if(token.toUpperCase().startsWith("C")){
-                        if (!isDirectionSelected) {
-                            System.out.println("Please choose a direction first to explore");
-                        } else {
-                            boolean isSuccess = chooseObject(token);
-                        }
+                        handleChooseWhenInArena(token);
                     }else {
-                        System.out.println("Invalid input. Please try again");
+                        //process action
+                        ActionResult result = processAction(token.toUpperCase());
+                        if(result != null)
+                            updateGameState(result);
                     }
             }
             if(isKeyFound || isExit){
@@ -199,6 +149,78 @@ public class Game implements KbInputHandler{
             token = readInput(in);
         }
 
+    }
+
+    private ActionResult processAction(String token) {
+        if(selectedObject == null){
+            System.out.println("No item has been selected. Cannot do any action!");
+            return null;
+        }
+        ActionResult result = null;
+        String[] tokens = token.split(" ");
+        Actions action = Actions.valueOf(tokens[0]);
+        if(action == null){
+            System.out.println("Invalid input. No action found.");
+            return null;
+        }
+        if(tokens.length > 1){
+            try{
+                int id = Integer.parseInt(tokens[1]);
+                Optional<ArenaObject> object = foundObjects.stream().filter(o -> o.getId() == id)
+                        .findAny();
+                if(object.isPresent()){
+                    result = selectedObject.apply(action, object.get());
+                } else{
+                    System.out.println("No object has been discovered with the given id");
+                    result = selectedObject.apply(action, Arrays.copyOfRange(tokens, 1, tokens.length-1));
+                }
+            }catch (NumberFormatException e){
+                result = selectedObject.apply(action, Arrays.copyOfRange(tokens, 1, tokens.length-1));
+            }
+        } else {
+            result = selectedObject.apply(action, new String[]{});
+        }
+        return result;
+    }
+
+    private void updateGameState(ActionResult result) {
+        ArenaObject foundObject = result.getObject();
+        score += result.getPoints();
+
+        if(result.isFound()) foundObjects.add(selectedObject);
+        if(result.isDone()) arena.removeObject(selectedObject.getId());
+        if(result.isKeyFound()) handleFinalization();
+
+        if(foundObject != null){
+            arena.addObject(foundObject, layoutSelected);
+            System.out.println("You found an object. Choose the same direction and explore to check what it is!");
+        }
+    }
+
+    private void showHelpMessageForObjectView() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("You have selected the object "+ selectedObject.getName() + " \n")
+                .append("Press E to explore the actions that you can take on this object \n")
+                .append("Press R to reset the selection");
+        System.out.println(sb.toString());
+    }
+
+    private void handleChooseWhenInArena(String token) {
+        if (!isDirectionSelected) {
+            System.out.println("Please choose a direction first to explore");
+        } else {
+            chooseObjectInArena(token);
+        }
+    }
+
+    private void handleExploreWithinObject(String token) {
+        if(!token.toUpperCase().equalsIgnoreCase("E")){
+            showHelpMessageForObjectView();
+            return;
+        }
+        selectedObject.explore();
+        selectedObject.exploreContainedObjects();
+        selectedObject.exploreActions();
     }
 
     private void handleQuit() {
@@ -218,22 +240,18 @@ public class Game implements KbInputHandler{
     }
 
     private void handleDirectionSelection(String token) {
-        if(token.toUpperCase().equalsIgnoreCase("E") && checkSelection()){
-            selectedObject.exploreActions();
+        if (!isDirectionSelected) {
+            isDirectionSelected = true;
+            layoutSelected = ArenaLayout.fromInitial(token.toUpperCase());
+            System.out.println("You are now facing " + layoutSelected.name() + " of the room. \n" +
+                    "Press 'E' to explore what all you have got. \n"
+                    + "Press 'R' to reset the direction selection.");
         } else {
-            if (!isDirectionSelected) {
-                isDirectionSelected = true;
-                layoutSelected = ArenaLayout.fromInitial(token.toUpperCase());
-                System.out.println("You are now facing " + layoutSelected.name() + " of the room. \n" +
-                        "Press 'E' to explore what all you have got. \n"
-                        + "Press 'R' to reset the direction selection.");
-            } else {
-                if(!token.toUpperCase().equalsIgnoreCase("E")){
-                    System.out.println("Invalid input.");
-                    System.out.println("You have already chosen a direction. Press 'E' to explore or 'R' to reset.");
-                }else {
-                    arena.explore(layoutSelected);
-                }
+            if(!token.toUpperCase().equalsIgnoreCase("E")){
+                System.out.println("Invalid input.");
+                System.out.println("You have already chosen a direction. Press 'E' to explore or 'R' to reset.");
+            }else {
+                arena.explore(layoutSelected);
             }
         }
     }
@@ -246,65 +264,12 @@ public class Game implements KbInputHandler{
         System.out.println(helpMessage);
     }
 
-    private void handleUse() {
-        System.out.println("Input the id of the object to use on this item. You can try objects found till now.");
-        displayFoundItems();
-        if(foundObjects.isEmpty()){
-            System.out.println("You have not yet found any object to use on this object. First pick up some items to use on this.");
-            return;
-        }
-        String token = readInput(in);
-        Map<Integer, ArenaObject> integerArenaObjectMap = foundObjects.stream().collect(Collectors.toMap(
-                e -> e.getId(), e -> e
-        ));
-        Integer id;
-        try {
-            id = Integer.parseInt(token);
-        }catch (NumberFormatException e){
-            System.out.println("Invalid id. Cannot find item to use.");
-            return;
-        }
-        if(integerArenaObjectMap.containsKey(id)) {
-            ArenaObject object = integerArenaObjectMap.get(id);
-            ArenaObject foundObject = selectedObject.useObject(object);
-            if(foundObject == null){
-                System.out.println(object.getName() + " cannot be used on " + selectedObject.getName() + ". Try some other object.");
-            }else {
-                updateScoreOnFindingObject(foundObject);
-                updateScoreOnFindingObject(selectedObject);
-                if (isKeyFound(foundObject)) {
-                    handleFinalization();
-                } else {
-                    foundObjects.add(foundObject);
-                }
-            }
-        }else{
-            System.out.println("Input an id from the found objects.");
-        }
-    }
-
     private void displayFoundItems() {
         if(!foundObjects.isEmpty()) {
             System.out.println("Objects found till now : ");
             foundObjects.stream().forEach(o -> System.out.println("ID: " + o.getId() + " Name : " + o.getName()));
         } else {
             System.out.println("You have not found any object yet. Keep trying.");
-        }
-    }
-
-    private void handlePick() {
-        ArenaObject object = selectedObject.pick();
-        arena.removeObject(object.getId());
-        foundObjects.add(object);
-        updateScoreOnFindingObject(object);
-        if(isKeyFound(object)){
-            handleFinalization();
-        }else {
-            System.out.println("You found the object : " + object.getName());
-            System.out.println("Great going");
-            displayScoreAndFoundItems();
-            System.out.println("Resetting selections ...");
-            resetSelections();
         }
     }
 
@@ -316,30 +281,6 @@ public class Game implements KbInputHandler{
         observers.stream().forEach(o -> o.handleGameUpdates(id, player, score, arena, true));
     }
 
-    private boolean isKeyFound(ArenaObject object) {
-        return object.isThisTheKey();
-    }
-
-    private void handleMove() {
-        ArenaObject object = selectedObject.move();
-        arena.removeObject(object.getId());
-        foundObjects.add(object);
-        updateScoreOnFindingObject(object);
-        if(isKeyFound(object)){
-            handleFinalization();
-        }else {
-            System.out.println("You found the object : " + object.getName());
-            System.out.println("Great going");
-            displayScoreAndFoundItems();
-            System.out.println("Resetting selections ...");
-            resetSelections();
-        }
-    }
-
-    private void updateScoreOnFindingObject(ArenaObject object) {
-        score += object.getPointsForFindingThis();
-    }
-
     private void displayScoreAndFoundItems() {
         displayFoundItems();
         displayScore();
@@ -347,10 +288,6 @@ public class Game implements KbInputHandler{
 
     private void displayScore() {
         System.out.println("\nPresent score : " + score);
-    }
-
-    private boolean checkSelection() {
-        return selectedObject != null;
     }
 
     private void resetSelections() {
@@ -361,36 +298,28 @@ public class Game implements KbInputHandler{
             selectedObject = null;
             System.out.println("Chosen object is reset");
         }
+        position = PlayerPos.ARENA;
     }
 
-    private boolean chooseObject(String token) {
-        boolean result = false;
+    private void chooseObjectInArena(String token) {
         try {
             int itemId = Integer.parseInt(token.substring(1));
-            List<ArenaObject> objects = arena.getObjects(layoutSelected);
-            if(objects != null && !objects.isEmpty()){
-                Optional<ArenaObject> object = objects.stream()
-                        .filter(o -> o.getId() == itemId)
-                        .findFirst();
-                if(object.isPresent()){
-                    selectedObject = object.get();
-                    System.out.println("Requested item is selected. Press 'R' to reset. Press E to explore this item.");
-                    result = true;
-                }else{
-                    System.out.println("Invalid input. Requested item is not here. Please try again");
+            if(selectedObject == null) {
+                selectedObject = arena.chooseObject(itemId, layoutSelected);
+                if(selectedObject == null){
+                    return;
                 }
-            }else {
-                System.out.println("Invalid input. No objects to choose from. Please try again");
+            } else {
+                selectedObject = selectedObject.chooseObject(itemId);
             }
+            position = PlayerPos.ARENA_OBJECT;
+            System.out.println("Requested item is selected. Press 'R' to reset. Press E to explore this item.");
         } catch (NumberFormatException e) {
             System.out.println("Invalid input. Please try again");
         }
-        return result;
     }
 
     public void addObserver(GameObserver observer){
         this.observers.add(observer);
     }
-
-
 }

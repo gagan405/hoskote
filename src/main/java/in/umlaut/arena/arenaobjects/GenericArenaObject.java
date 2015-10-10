@@ -6,69 +6,45 @@ import in.umlaut.arena.ArenaObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Created by gbm on 27/09/15.
  */
 public class GenericArenaObject implements ArenaObject {
+    private static final String INVALID_ACTION = "Invalid action request. Please explore this object for details.";
     private int id;
-    private Long pointsForFindingThis;
     private String name;
+    private String explore;
+
+    private Actions action;
+
+    private ArenaObject actionOperator;
+    private String actionInput;
+    private ActionResult result;
+
     private ArenaObject container;
     private Arena containerArena;
     private Map<Integer, ArenaObject> objects;
+    private Function<ArenaObject, Void> onAction;
 
-    private boolean isFound;
-    private boolean isMyRoleOver;
+    private boolean isDone = false;
+
     private boolean isThisTheKey;
+    private boolean canExploreContainedItems;
 
-    private boolean isMovable;
-    private boolean isPickable;
-    private boolean isUsableOnOtherObject;
-    private boolean isUsableByOtherObject;
-
-    private ArenaObject findObjectOnMoveOrUse;
-    private ArenaObject usableByObject;
-    private boolean canApplyInput;
-    private String inputToEnter;
-    private String explore;
-    private ArenaObject objectToReturnOnCorrectInput;
-
-    public GenericArenaObject(Integer id,
-                              ArenaObject container,
-                              Arena containerArena,
-                              String name,
-                              boolean isMovable,
-                              boolean isPickable,
-                              boolean isUsableOnOtherObject,
-                              boolean isUsableByOtherObject,
-                              boolean isThisTheKey,
-                              ArenaObject findObjectOnMoveOrUse,
-                              ArenaObject usableByObject,
-                              boolean canApplyInput,
-                              String inputToEnter,
-                              ArenaObject objectToReturnOnCorrectInput,
-                              String explore,
-                              List<ArenaObject> containedObjects,
-                              Long pointsForFindingThis
-                              ){
-        this.id = id;
-        this.container = container;
-        this.containerArena = containerArena;
-        this.name = name;
-        this.isMovable = isMovable;
-        this.isPickable = isPickable;
-        this.isUsableOnOtherObject = isUsableOnOtherObject;
-        this.isUsableByOtherObject = isUsableByOtherObject;
-        this.findObjectOnMoveOrUse = findObjectOnMoveOrUse;
-        this.isThisTheKey = isThisTheKey;
-        this.usableByObject = usableByObject;
-        this.canApplyInput = canApplyInput;
-        this.inputToEnter = inputToEnter;
-        this.objectToReturnOnCorrectInput = objectToReturnOnCorrectInput;
-        this.explore = explore;
-        this.pointsForFindingThis = pointsForFindingThis;
-        fillObjectsMap(containedObjects);
+    public GenericArenaObject(ArenaObjectBuilder builder){
+        this.id = builder.getId();
+        this.container = builder.getContainer();
+        this.containerArena = builder.getContainingArena();
+        this.name = builder.getName();
+        this.isThisTheKey = builder.isThisTheKey();
+        this.explore = builder.getExplore();
+        this.onAction = builder.getOnAction();
+        this.action = builder.getAction();
+        this.result = builder.getResult();
+        this.actionInput = builder.getActionInput();
+        fillObjectsMap(builder.getContainedObjects());
     }
 
     private void fillObjectsMap(List<ArenaObject> containedObjects) {
@@ -85,9 +61,14 @@ public class GenericArenaObject implements ArenaObject {
         return this.id;
     }
 
+    public void setActionOperator(ArenaObject actionOperator) {
+        this.actionOperator = actionOperator;
+    }
+
     @Override
-    public Long getPointsForFindingThis(){
-        return pointsForFindingThis;
+    public Void setDone(boolean done) {
+        this.isDone = done;
+        return null;
     }
 
     @Override
@@ -97,20 +78,13 @@ public class GenericArenaObject implements ArenaObject {
 
     @Override
     public void exploreActions() {
-        StringBuilder sb = new StringBuilder();
-        if(isMovable()){
-            sb.append("You can move this object. Use M to move me aside \n");
-        }
-        if(isPickable()){
-            sb.append("You can pick this object. Use P to pick me up \n");
-        }
-        if(isUsableOnOtherObject){
-            sb.append("I might be used on some other object. Use P to pick me up and use when needed \n");
-        }
-        if(isUsableByOtherObject()){
-            sb.append("I might be used by some other object. \n");
-        }
-        System.out.println(sb.toString());
+        if(this.action != null)
+            System.out.println(new StringBuilder().append(this.action.getMessage()).toString());
+    }
+
+    @Override
+    public boolean canExploreContainedObjects() {
+        return this.canExploreContainedItems;
     }
 
     @Override
@@ -124,56 +98,53 @@ public class GenericArenaObject implements ArenaObject {
     }
 
     @Override
-    public ArenaObject pick() {
-        if(isPickable()) {
-            isFound = true;
-            return this;
+    public ActionResult apply(Actions action, String[] args) {
+        if(isDone()){
+            System.out.println("Action has already been taken on this object");
+            return null;
         }
+        if(args != null && args.length > 0){
+            return apply(action, String.join(" ", args));
+        }
+        if(isActionable(action)) {
+            onAction.apply(this);
+            return this.result;
+        }
+        System.out.println(INVALID_ACTION);
+        return null;
+    }
+
+
+    @Override
+    public ActionResult apply(Actions action, ArenaObject object) {
+        if(isDone()){
+            System.out.println("Action has already been taken on this object");
+            return null;
+        }
+        if(isActionable(object, action)){
+            this.onAction.apply(this);
+            return this.result;
+        }
+        System.out.println(INVALID_ACTION);
+        return null;
+    }
+
+    public ActionResult apply(Actions action, String input) {
+        if(isDone()){
+            System.out.println("Action has already been taken on this object");
+            return null;
+        }
+        if(isActionable(action, input)){
+            this.onAction.apply(this);
+            return this.result;
+        }
+        System.out.println(INVALID_ACTION);
         return null;
     }
 
     @Override
     public String getName() {
         return name;
-    }
-
-    @Override
-    public ArenaObject move() {
-        if(isMovable()){
-            isFound = true;
-            isMyRoleOver = true;
-            return findObjectOnMoveOrUse;
-        } else return null;
-    }
-
-    @Override
-    public ArenaObject useObjectOn(Integer id1, Integer id2) {
-        if(objects.get(id2).isUsableBy(objects.get(id1))){
-            return objects.get(id2).useObject(objects.get(id1));
-        } else{
-            System.err.println("Cannot use object " + id1 + " on object " + id2);
-        }
-        return null;
-    }
-
-    @Override
-    public ArenaObject useObject(ArenaObject object) {
-        if(isUsableBy(object)){
-            isFound = true;
-            isMyRoleOver = true;
-            return findObjectOnMoveOrUse;
-        }
-        return null;
-    }
-
-    @Override
-    public ArenaObject applyInput(String input) {
-        if(canApplyInput && inputToEnter.equalsIgnoreCase(input)){
-            isMyRoleOver = true;
-            isFound = true;
-            return objectToReturnOnCorrectInput;
-        }
-        return null;
     }
 
     @Override
@@ -204,44 +175,19 @@ public class GenericArenaObject implements ArenaObject {
         return containerArena;
     }
 
-    @Override
-    public void setContainer(ArenaObject object) {
-        this.container = object;
+    public boolean isActionable(Actions action) {
+        return this.action.equals(action) && this.actionOperator == null && this.actionInput == null;
     }
 
     @Override
-    public boolean isPickable() {
-        return isPickable;
+    public boolean isActionable(ArenaObject object, Actions action) {
+        return this.action.equals(action) && this.actionOperator != null
+                && this.actionOperator.getId() == object.getId();
     }
 
-    @Override
-    public boolean isMovable() {
-        return isMovable;
-    }
-
-    @Override
-    public boolean isUsableBy(ArenaObject object) {
-        return isUsableByOtherObject && usableByObject.getId() == object.getId();
-    }
-
-    @Override
-    public boolean canApplyInput() {
-        return canApplyInput;
-    }
-
-    @Override
-    public boolean isMyRoleOver() {
-        return isMyRoleOver;
-    }
-
-    @Override
-    public boolean isFound() {
-        return isFound;
-    }
-
-    @Override
-    public boolean isUsableByOtherObject() {
-        return isUsableByOtherObject;
+    public boolean isActionable(Actions action, String input){
+        return this.action.equals(action) && this.actionOperator == null
+                && this.actionInput.equalsIgnoreCase(input);
     }
 
     @Override
@@ -249,8 +195,26 @@ public class GenericArenaObject implements ArenaObject {
         return isThisTheKey;
     }
 
+    @Override
+    public boolean isDone() {
+        return isDone;
+    }
 
-    public void setUsableByObject(ArenaObject object){
-        this.usableByObject = object;
+    @Override
+    public void exploreContainedObjects() {
+        if(this.canExploreContainedItems)
+            this.objects.values().stream().forEach(o -> o.explore());
+        else if(this.objects.isEmpty())
+            System.out.println("No contained objects to explore.");
+        else
+            System.out.println("Cannot explore contained objects yet. May be you need to take some action on this first.");
+    }
+
+    public void setOnAction(Function<ArenaObject, Void> onAction) {
+        this.onAction = onAction;
+    }
+
+    public void setContainer(ArenaObject container) {
+        this.container = container;
     }
 }

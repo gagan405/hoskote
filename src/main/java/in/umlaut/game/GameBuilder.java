@@ -14,9 +14,38 @@ public class GameBuilder {
     private Player playerInstance;
     private Arena arenaInstance;
 
-    private Game game;
+    public Player getPlayerInstance() {
+        return playerInstance;
+    }
 
-    private boolean isReconstruct;
+    public Arena getArenaInstance() {
+        return arenaInstance;
+    }
+
+    public boolean isDirectionSelected() {
+        return isDirectionSelected;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public ArenaLayout getLayout() {
+        return layout;
+    }
+
+    public long getScore() {
+        return score;
+    }
+
+    public List<ArenaObject> getFoundObjects() {
+        return foundObjects;
+    }
+
+    public ArenaObject getSelectedObject() {
+        return selectedObject;
+    }
+
     private boolean isDirectionSelected;
     private int id;
     private ArenaLayout layout;
@@ -58,11 +87,6 @@ public class GameBuilder {
         return this;
     }
 
-    public GameBuilder setIsReconstruct(boolean isReconstruct){
-        this.isReconstruct = isReconstruct;
-        return this;
-    }
-
     public GameBuilder setIsDirectionSelected(boolean isDirectionSelected){
         this.isDirectionSelected = isDirectionSelected;
         return this;
@@ -73,21 +97,12 @@ public class GameBuilder {
         return this;
     }
 
-    public GameBuilder setGame(Game game){
-        this.game = game;
-        return this;
-    }
 
     public boolean canStart() {
-        return (playerInstance != null && arenaInstance != null) ||
-                (isReconstruct && ((game != null) || (playerInstance != null && arenaInstance != null)) );
+        return (playerInstance != null && arenaInstance != null);
     }
 
     public Game build() {
-        if(!isReconstruct) {
-            return new Game(playerInstance, arenaInstance);
-        }else
-            return this.game == null ? new Game(id, playerInstance, arenaInstance, score, selectedObject, foundObjects, isDirectionSelected, layout )
-                    : this.game;
+        return new Game(this);
     }
 }
