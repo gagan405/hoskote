@@ -36,6 +36,7 @@ public class GenericArenaObject implements ArenaObject {
     public GenericArenaObject(ArenaObjectBuilder builder){
         this.id = builder.getId();
         this.container = builder.getContainer();
+        this.actionOperator = builder.getActionOperator();
         this.containerArena = builder.getContainingArena();
         this.name = builder.getName();
         this.isThisTheKey = builder.isThisTheKey();
@@ -204,8 +205,7 @@ public class GenericArenaObject implements ArenaObject {
     public void exploreContainedObjects() {
         if(this.canExploreContainedItems)
             this.objects.values().stream().forEach(o -> o.explore());
-        else if(this.objects.isEmpty())
-            System.out.println("No contained objects to explore.");
+        else if(this.objects.isEmpty()){}
         else
             System.out.println("Cannot explore contained objects yet. May be you need to take some action on this first.");
     }

@@ -10,7 +10,6 @@ import in.umlaut.player.Player;
 import in.umlaut.views.KbInputHandler;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Created by gbm on 26/09/15.
@@ -139,8 +138,10 @@ public class Game implements KbInputHandler{
                     }else {
                         //process action
                         ActionResult result = processAction(token.toUpperCase());
-                        if(result != null)
+                        if(result != null) {
                             updateGameState(result);
+                            resetSelections();
+                        }
                     }
             }
             if(isKeyFound || isExit){
@@ -170,9 +171,13 @@ public class Game implements KbInputHandler{
                         .findAny();
                 if(object.isPresent()){
                     result = selectedObject.apply(action, object.get());
+                    if(result != null){
+                        //object is successfully used.. we can remove it from found objects
+                        foundObjects.remove(object.get());
+                    }
                 } else{
                     System.out.println("No object has been discovered with the given id");
-                    result = selectedObject.apply(action, Arrays.copyOfRange(tokens, 1, tokens.length-1));
+                    result = selectedObject.apply(action, Arrays.copyOfRange(tokens, 1, tokens.length));
                 }
             }catch (NumberFormatException e){
                 result = selectedObject.apply(action, Arrays.copyOfRange(tokens, 1, tokens.length-1));

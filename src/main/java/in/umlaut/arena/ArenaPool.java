@@ -34,6 +34,9 @@ public class ArenaPool {
         Arena level1 = initializer.getSimplestArena();
         arenas = new ArrayList<>();
         arenas.add(level1);
+
+        Arena level2 = initializer.getArenaLevel2();
+        arenas.add(level2);
     }
 
     public List<Arena> getArenas(){

@@ -1,7 +1,5 @@
 package in.umlaut.arena;
 
-import in.umlaut.game.PlayerPos;
-
 import java.util.*;
 
 /**
@@ -18,21 +16,15 @@ public class Arena {
     private Map<Integer, ArenaObject> objects;
     private Map<ArenaLayout, List<ArenaObject>> objectsLayout;
 
-    public Arena(int id,
-                 String name,
-                 int level,
-                 Long pointsForClearingThis,
-                 String description,
-                 String shortDescription,
-                 Map<ArenaLayout, List<ArenaObject>> objectsLayout){
+    public Arena(ArenaBuilder builder){
         objectsLayout = new HashMap<>();
-        this.level = level;
-        this.name = name;
-        this.description = description;
-        this.shortDescription = shortDescription;
-        this.id = id;
-        this.objectsLayout = objectsLayout;
-        this.pointsForClearingThis = pointsForClearingThis;
+        this.level = builder.getLevel();
+        this.name = builder.getName();
+        this.description = builder.getDescription();
+        this.shortDescription = builder.getShortDescription();
+        this.id = builder.getId();
+        this.objectsLayout = builder.getLayoutArenaObjectMap();
+        this.pointsForClearingThis = builder.getPointsForClearingThis();
         fillObjectsMap();
     }
 
@@ -94,23 +86,6 @@ public class Arena {
             System.out.println("Invalid input. No objects to choose from. Please try again");
         }
         return null;
-    }
-
-    public void addObject(ArenaObject object){
-        throw new UnsupportedOperationException("Layout information is mandatory to add objects to an Arena");
-    }
-
-    public Map<Integer, ArenaObject> showContainedObjects(boolean isDeepTraverse) {
-        if(isDeepTraverse){
-            Map<Integer, ArenaObject> allContainedObjects = new HashMap<>();
-            for(ArenaObject object : this.objects.values()){
-                allContainedObjects.put(object.getId(), object);
-                allContainedObjects.putAll(object.showContainedObjects(true));
-            }
-            return allContainedObjects;
-        } else {
-            return this.objects;
-        }
     }
 
     public int getLevel() {

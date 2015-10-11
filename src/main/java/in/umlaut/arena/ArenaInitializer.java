@@ -15,30 +15,31 @@ public class ArenaInitializer {
 
     private static final String LEVEL1_DESC =
             "Simplest Arena you will ever find! \n\n"
-                    +"Explore and experiment with objects you find.\n"
-                    +"Your aim is to find the key to the door. \n";
+                    + "Explore and experiment with objects you find.\n"
+                    + "Your aim is to find the key to the door. \n";
 
     private static final String LEVEL2_DESC =
             "Arena level 2 \n\n"
-                    +"Explore and experiment with objects you find.\n"
-                    +"Your aim is to find the key to the door. \n";
+                    + "Explore and experiment with objects you find.\n"
+                    + "Your aim is to find the key to the door. \n";
 
 
-    public ArenaInitializer(){}
+    public ArenaInitializer() {
+    }
 
-    private Arena initializeArena(){
+    private Arena initializeArena() {
 
         ArenaBuilder builder = new ArenaBuilder();
         builder.setName("Arena Level 1")
-            .setDescription(LEVEL1_DESC)
-            .setShortDescription("Can't get any simpler!!")
-            .setPointsForClearingThis(1000l)
-            .setLevel(1);
+                .setDescription(LEVEL1_DESC)
+                .setShortDescription("Can't get any simpler!!")
+                .setPointsForClearingThis(1000l)
+                .setLevel(1);
 
         return builder.build();
     }
 
-    private Arena initializeArenaLevel2(){
+    private Arena initializeArenaLevel2() {
 
         ArenaBuilder builder = new ArenaBuilder();
         builder.setName("Arena Level 2")
@@ -50,7 +51,7 @@ public class ArenaInitializer {
         return builder.build();
     }
 
-    public Arena getSimplestArena(){
+    public Arena getSimplestArena() {
         Arena arena = initializeArena();
 
         ArenaObjectBuilder keyBuilder = new ArenaObjectBuilder();
@@ -87,7 +88,7 @@ public class ArenaInitializer {
         hammerBuilder.setId(idGenerator.getNextId(true));
         hammerBuilder.setContainerArena(arena);
         hammerBuilder.setName("Thor's hammer");
-        hammerBuilder.setActionResult(new ActionResult(null, true, true,false, null, 200l));
+        hammerBuilder.setActionResult(new ActionResult(null, true, true, false, null, 200l));
         hammerBuilder.setOnAction(object -> object.setDone(true));
 
         GenericArenaObject hammer = hammerBuilder.build();
@@ -100,60 +101,80 @@ public class ArenaInitializer {
         return arena;
     }
 
-   /* public Arena getArenaLevel2(){
+    public Arena getArenaLevel2() {
         Arena arena = initializeArenaLevel2();
 
         ArenaObjectBuilder keyBuilder = new ArenaObjectBuilder();
+        keyBuilder.setId(idGenerator.getNextId(true));
         keyBuilder.setName("Key to the door");
         keyBuilder.setExplore("I am the key to the door. Pick me up and get on the road to freedom!");
-        keyBuilder.setIsPickable(true);
         keyBuilder.setIsThisTheKey(true);
-        keyBuilder.setPointsForFindingThis(500l);
+        keyBuilder.setAction(Actions.PICK);
+        keyBuilder.setActionResult(new ActionResult(null, true, true, true, null, 500l));
 
         GenericArenaObject key = keyBuilder.build();
+        pool.addObject(key);
+        key.setOnAction(object -> null);
 
         ArenaObjectBuilder boxBuilder = new ArenaObjectBuilder();
         boxBuilder.setExplore("I am a safe box. There might be something inside me. Why don't you find out ? \n" +
                 "You would need a 4 digit password to open me though!");
         boxBuilder.setName("Safe box");
+        boxBuilder.setId(idGenerator.getNextId(true));
         List<ArenaObject> containedObject = new ArrayList<>();
         containedObject.add(key);
         boxBuilder.setContainedObjects(containedObject);
-        boxBuilder.setObjectToReturnOnCorrectInput(key);
         boxBuilder.setContainerArena(arena);
-        boxBuilder.setCanApplyInput(true);
+        boxBuilder.setAction(Actions.INPUT);
+        boxBuilder.setActionInput("3254");
+        boxBuilder.setActionResult(new ActionResult(key, true, false, false, null, 200l));
 
-        boxBuilder.setPointsForFindingThis(200l);
+        boxBuilder.setOnAction(object -> object.setDone(true));
 
         GenericArenaObject safeBox = boxBuilder.build();
+        pool.addObject(safeBox);
         key.setContainer(safeBox);
 
         ArenaObjectBuilder clockBuilder = new ArenaObjectBuilder();
         clockBuilder.setExplore("I am a clock. But my battery is gone. You may want to see when I died");
         clockBuilder.setContainerArena(arena);
         clockBuilder.setName("A dead clock");
-        clockBuilder.setReadme("I am pointing at 3:25. That fateful hour when I died!");
-        clockBuilder.setIsFoundWhenExplore(true);
-        clockBuilder.setPointsForFindingThis(200l);
+        clockBuilder.setAction(Actions.READ);
+        clockBuilder.setId(idGenerator.getNextId(true));
+        clockBuilder.setActionResult(new ActionResult(null, false, false, false, null, 0l));
+        clockBuilder.setOnAction(arenaObject -> {
+            System.out.println("I am pointing at 3:25. That fateful hour when I died!");
+            return null;
+        });
 
         GenericArenaObject clock = clockBuilder.build();
+        pool.addObject(clock);
+
 
         ArenaObjectBuilder bookBuilder = new ArenaObjectBuilder();
         bookBuilder.setExplore("I am a book. Written by Sir Arthur Conan Doyle.");
         bookBuilder.setName("A Book");
-        bookBuilder.setReadme("My title says : The Sign of Four. I am a pretty nice story of Sherlock Holmes.");
-        bookBuilder.setIsFoundWhenExplore(true);
-        bookBuilder.setPointsForFindingThis(400l);
+        bookBuilder.setAction(Actions.READ);
+        bookBuilder.setId(idGenerator.getNextId(true));
+        bookBuilder.setActionResult(new ActionResult(null, false, false, false, null, 0l));
+        bookBuilder.setOnAction(arenaObject -> {
+            System.out.println("My title says : The Sign of Four. I am a pretty nice story of Sherlock Holmes.");
+            return null;
+        });
 
-        ArenaObject book = bookBuilder.build();
+        GenericArenaObject book = bookBuilder.build();
+        pool.addObject(book);
 
         ArenaObjectBuilder keyBuilder1 = new ArenaObjectBuilder();
         keyBuilder1.setName("Key to something else");
         keyBuilder1.setExplore("I am a key, not to the door unfortunately. Still you can pick me up and try on other objects!");
-        keyBuilder1.setIsPickable(true);
-        keyBuilder1.setPointsForFindingThis(200l);
-        keyBuilder1.setIsUsableOnOtherObject(true);
+        keyBuilder1.setAction(Actions.PICK);
+        keyBuilder1.setActionResult(new ActionResult(null, true, true, false, null, 200l));
+        keyBuilder1.setOnAction(arenaObject -> null);
+        keyBuilder1.setId(idGenerator.getNextId(true));
+        keyBuilder1.setContainerArena(arena);
         GenericArenaObject key1 = keyBuilder1.build();
+        pool.addObject(key1);
 
         ArenaObjectBuilder cupboardBuilder = new ArenaObjectBuilder();
 
@@ -163,10 +184,14 @@ public class ArenaInitializer {
         containedObject.add(book);
         cupboardBuilder.setContainedObjects(containedObjectInCupBoard);
         cupboardBuilder.setContainerArena(arena);
-        cupboardBuilder.setIsUsableByOtherObject(true);
-        cupboardBuilder.setUsableObject(key1);
-        cupboardBuilder.setPointsForFindingThis(200l);
-        ArenaObject cupBoard = cupboardBuilder.build();
+        cupboardBuilder.setId(idGenerator.getNextId(true));
+        cupboardBuilder.setAction(Actions.OPEN);
+        cupboardBuilder.setActionOperator(key1);
+        cupboardBuilder.setOnAction(arenaObject -> null);
+        cupboardBuilder.setActionResult(new ActionResult(book, true, false, false, null, 300l));
+
+        GenericArenaObject cupBoard = cupboardBuilder.build();
+        pool.addObject(cupBoard);
 
         book.setContainer(cupBoard);
 
@@ -177,5 +202,4 @@ public class ArenaInitializer {
 
         return arena;
     }
-    */
 }

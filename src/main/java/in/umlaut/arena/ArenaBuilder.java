@@ -62,7 +62,38 @@ public class ArenaBuilder {
     }
 
     public Arena build(){
-        return new Arena(id, name, level, pointsForClearingThis, description, shortDescription, layoutArenaObjectMap);
+        return new Arena(this);
     }
 
+    public ArenaIdGenerator getIdGenerator() {
+        return idGenerator;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getShortDescription() {
+        return shortDescription;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public Long getPointsForClearingThis() {
+        return pointsForClearingThis;
+    }
+
+    public Map<ArenaLayout, List<ArenaObject>> getLayoutArenaObjectMap() {
+        return layoutArenaObjectMap;
+    }
 }
